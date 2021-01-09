@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lets chat</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body class="chat">
+    <div class="chat__sidebar">
+        <h3>People</h3>
+        <div id="users"></div>
+    </div>
+    <div class="chat__main">
+        <ol id="messages" class="chat__messages"></ol>
+
+        <div class="chat__footer">
+            <form action="" id="messageForm">
+                <input id="message" type="text" name="message" placeholder="message">
+                <button id="submit" type="submit">Submit</button>
+            </form>
+
+            <button type="submit" id="sendlocation">Send location</button>
+
+        </div>
+
+    </div>
+    <script id="message-template" type="text/template">
+        <li class="message">
+            <div class="message__title">
+                <h4>{{from}}</h4>
+                <span>{{createdAt}}</span>
+            </div>
+            <div class="message__body">
+                <p>{{text}}</p>
+            </div>
+            
+        </li>
+     
+    </script>
+    <script id="location-message-template" type="text/template">
+        <li class="message">
+            <div class="message__title">
+                <h4>{{from}}</h4>
+                <span>{{createdAt}}</span>
+            </div>
+            <div class="message__body">
+                <a href="{{url}}" target="__blank">
+                          My current location
+               </a>          
+  </div>
+            
+        </li>
+     
+    </script>
+
+    <!-- this is a script for socket io which allows us to made a connection with backend  -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/chat.js">
+
+    </script>
+    <script src="/js/libs/moment.js"></script>
+    <script src="/js/libs/mustache.js"></script>
+</body>
+
+</html>

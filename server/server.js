@@ -4,16 +4,18 @@ const http = require("http")
 const port = process.env.PORT || 3000
 const socketIO = require("socket.io")
 const { Socket } = require("dgram")
-
+const { generateMessage, generateLoctionMessage } = require("./utils/message")
+const { isreal } = require("./utils/checking")
+const { Users } = require('./utils/users');
 const publicPath = path.join(__dirname, "/../public")
-
 let app = express();
-
 // we are creating our own server because socket doesnot work with express server 
 let server = http.createServer(app)
 
 // now our socket is integrated with our server 
 let io = socketIO(server)  // this also allows us to use socket io library which we used in our public folder
+let users = new Users();
+
 app.use(express.static(publicPath))
 
 
@@ -22,54 +24,55 @@ io.on("connection", (socket) => {
     console.log("someone new is connected")
 
     // to listen a new message from client side we use emit here
+    socket.on("join", (params, callback) => {
 
-    //initial message to everone
-    socket.emit("newMessage", {
-        from: "admin",
-        text: "Welcome to the chat app !!",
-        createdAt: new Date().getTime()
+        if (!isreal(params.name) || !isreal(params.room)) {
+            return callback("Name and Room are required")
+        }
+        socket.join(params.room);
+        users.removeUser(socket.id);
+        users.addUser(socket.id, params.name, params.room);
+
+        io.to(params.room).emit('updateUsersList', users.getUserList(params.room));
+        socket.emit('newMessage', generateMessage('Admin', `Welocome to ${params.room}!`));
+
+        socket.broadcast.to(params.room).emit('newMessage', generateMessage('Admin', "New User Joined!"));
+
+        callback();
     })
-
-    // when someone join everone except the joining person will get the message
-    socket.broadcast.emit("newMessage", {
-        from: "admin",
-        text: "Someone new is join",
-        createdAt: new Date().getTime()
-    })
-
-
-
 
     // now we will create our custom event other than connection and disconnection
 
-    socket.on("createMessage", (message) => {
-        console.log("createMessage", message)
+    socket.on("createMessage", (message, callback) => {
+        let user = users.getUser(socket.id);
 
-        // io.emit will brodcast this to each channel or member connected to the server (socket.emit will send only to that member from which the request is comming)
-        io.emit("newMessage", {
-            from: message.from,
-            message: message.text,
-            createdAt: new Date().getTime()
-        })
+        if (user && isreal(message.text)) {
+            io.to(user.room).emit('newMessage', generateMessage(user.name, message.text));
+        }
+        callback('This is the server:');
 
-
-        // this will broadcast the message to everyobe except the user who created the event 
-        // socket.broadcast.emit("newMessage", {
-        //     from: message.from,
-        //     message: message.text,
-        //     createdAt: new Date().getTime()
-        // })
     })
 
 
 
+    socket.on("createLocationMessage", (coords) => {
+        let user = users.getUser(socket.id)
+        if (user) {
+            io.to(user.room).emit("newLocationMessage", generateLoctionMessage(user.name, coords.lat, coords.long))
 
+        }
+    })
 
     // we use the socket object to check if someone disonnected 
-    socket.on("disconnect", () => {
-        console.log("disconnected")
-    })
-})
+    socket.on('disconnect', () => {
+        let user = users.removeUser(socket.id);
+
+        if (user) {
+            io.to(user.room).emit('updateUsersList', users.getUserList(user.room));
+            io.to(user.room).emit('newMessage', generateMessage('Admin', `${user.name} has left ${user.room} chat room.`))
+        }
+    });
+});
 
 server.listen(port, () => {
     console.log(`listining at ${port}`)
