@@ -29,6 +29,8 @@ io.on("connection", (socket) => {
         if (!isreal(params.name) || !isreal(params.room)) {
             return callback("Name and Room are required")
         }
+        let user = users.getUser(socket.id);
+
         socket.join(params.room);
         users.removeUser(socket.id);
         users.addUser(socket.id, params.name, params.room);
@@ -36,7 +38,7 @@ io.on("connection", (socket) => {
         io.to(params.room).emit('updateUsersList', users.getUserList(params.room));
         socket.emit('newMessage', generateMessage('Admin', `Welocome to ${params.room}!`));
 
-        socket.broadcast.to(params.room).emit('newMessage', generateMessage('Admin', "New User Joined!"));
+        socket.broadcast.to(params.room).emit('newMessage', generateMessage('Admin', `${params.name} Joined`));
 
         callback();
     })
